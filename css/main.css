@@ -1,0 +1,12 @@
+* { margin: 0; padding: 0; }
+
+body {
+  background-color: #666;
+  position: relative;
+  color: white;
+}
+
+#content {
+  width: 100vw;
+  height: 100vh;
+}

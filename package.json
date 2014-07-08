@@ -1,0 +1,17 @@
+{
+  "name": "webkit-eyetribe",
+  "main": "index.html",
+  "scripts": {
+    "start": "nodewebkit"
+  },
+  "dependencies": {
+    "jquery": "*",
+    "json-over-tcp": "*"
+  },
+  "window": {
+    "toolbar": false,
+    "frame": false,
+    "menu": false,
+    "kiosk": false
+  }
+}
