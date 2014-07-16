@@ -5,13 +5,13 @@
     "start": "nodewebkit"
   },
   "dependencies": {
-    "jquery": "*",
-    "json-over-tcp": "*"
+    "jquery": "*"
   },
   "window": {
     "toolbar": false,
     "frame": false,
+    "resizable": true,
     "menu": false,
-    "kiosk": false
+    "kiosk": true
   }
 }

@@ -1,12 +1,39 @@
 * { margin: 0; padding: 0; }
 
 body {
-  background-color: #666;
+  /*background-color: #666;*/
   position: relative;
   color: white;
+  width: 100vw;
+  height: 100vh;
+  overflow:hidden;
 }
 
 #content {
-  width: 100vw;
-  height: 100vh;
+  background-color: #666;
+  width:100%;
+  height: 100%;
+}
+
+.marker {
+  height: 4px;
+  width: 4px;
+  position: absolute;
+  border: 10px solid black;
+  border-radius: 12px;
+  padding-top: -12px;
+  padding-left: -12px;
+  background-color: #ccc;
+}
+
+#leftMarker {
+  border: 0px;
+  background: red;
+  padding: -2px 0 0 -2px;
+}
+
+#rightMarker {
+  border: 0px;
+  background: cyan;
+  padding: -2px 0 0 -2px;
 }

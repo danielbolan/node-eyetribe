@@ -1,79 +1,80 @@
 //An EyeTribe client
-//Essentially a modified json-socket to better handle errors
-var jot = require('json-over-tcp'),
+var net = require('net'),
     EventEmitter = require('events').EventEmitter;
 
-var socket = null;
-var eventEmitter = new EventEmitter();
+module.exports = function EyeTribe(port,host) {
 
-var settings = {
-  push: null,
-  heartbeatinterval: null,
-  version: null,
-  trackerstate: null,
-  framerate: null,
-  iscalibrated: null,
-  iscalibrating: null,
-  calibresult: null,
-  frame: null,
-  screenIndex: null,
-  screenresw: null,
-  screenresh: null,
-  screenpsyw: null,
-  screenpsyh: null
-};
-
-function raiseError(err) {
-  var msg = err.category + ' error ' +
-            err.statuscode + ': ' +
-            err.values.statusmessage;
-  eventEmitter.emit('error', msg);
-}
-
-function heartbeat() {
-  socket.write({ category: 'heartbeat' });
-
-  var waitForResponse = function(data) {
-    if (data.category === 'heartbeat') {
-      socket.removeListener(waitForResponse);
-      if (data.statuscode !== 200) raiseError(data);
-    }
+  var settings = {
+    port: port || 6555,
+    host: host || 'localhost',
   };
-  socket.on('data', waitForResponse);
-}
 
-function getData(keys, callback) {
-  socket.write({
-    category: 'tracker',
-    request: 'get',
-    values: keys
-  });
+  var emitter = new EventEmitter();
+  this.on = function(name,listener) {
+    emitter.on(name,listener);
+  };
+  var heartbeat = null;
 
-  var waitForResponse = function(data) {
-    if (data.category === 'tracker' && data.request === 'get') {
-      socket.removeListener('data', waitForResponse);
-      if (data.statuscode === 200) {
-        for (key in data.values) settings[key] = data[key];
-      } else {
-        callback(data)
+  var handleMessage = function(message) {
+    if (message.category !== "tracker" || message.request !== "get") return;
+    if (!message.values) return console.dir(message);
+    if (message.values.frame) { //eye position update
+      emitter.emit('data',message.values.frame);
+    } else {                    //settings update
+      for (var key in message.values) {
+        settings[key] = message.values[key];
       }
-      callback(null);
+      if (message.values.heartbeatinterval) {
+        if (heartbeat) {
+          clearInterval(heartbeat);
+        }
+        heartbeat = setInterval(function() {
+          socket.write(JSON.stringify({
+            category: 'heartbeat'
+          }));
+        }, message.values.heartbeatinterval);
+      }
+      if (message.values.push === false) {
+        socket.write(JSON.stringify({
+          category: 'tracker',
+          request: 'set',
+          values: {
+            push: true
+          }
+        }));
+      }
     }
   };
-  socket.on('data', waitForResponse);
-}
 
-var connect = function connect(port, host) {
-  port = port || 6555;
-  host = host || 'localhost';
+  var parseMessages = function(messages) {
+    messages = messages.toString().split('}{');
+    if (messages.length > 1) {
+      for (var i=0; i<messages.length-1; i++) {
+        messages[i] += '}';
+      }
+      messages[messages.length-1] += '{' + messages[messages.length-1];
+    }
+    messages.forEach(function(msg) {
+      try {
+        msg = JSON.parse(msg);
+      } catch (err) {
+        return console.error(err);
+      }
+      if (msg.statuscode !== 200) {
+        console.log('error packet');
+        return emitter.emit('error',msg);
+      }
+      handleMessage(msg);
+    });
+  };
 
-  socket = jot.connect(port, host, function() {
+  var socket = net.connect(settings.port, settings.host, function(err) {
+    socket.on('data', parseMessages);
 
-    var keys = [];
-    for (var key in settings) keys.push(key);
-    getData(keys, function(err) {
-      if (err) return raiseError(err);
-      setInterval(heartbeat, settings.heartbeatInterval);
-    })
+    socket.write(JSON.stringify({
+      category: 'tracker',
+      request: 'get',
+      values: ['push','heartbeatinterval']
+    }));
   });
-}
+}; //end module;
